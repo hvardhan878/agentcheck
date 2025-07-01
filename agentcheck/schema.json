@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentCheck Trace Schema",
+  "description": "Schema for agentcheck trace files",
+  "type": "object",
+  "required": ["trace_id", "version", "start_time", "end_time", "steps"],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "description": "Unique identifier for this trace"
+    },
+    "version": {
+      "type": "string",
+      "description": "Schema version"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when trace started"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when trace ended"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the trace",
+      "properties": {
+        "agent_name": {"type": "string"},
+        "model": {"type": "string"},
+        "total_cost": {"type": "number"}
+      }
+    },
+    "steps": {
+      "type": "array",
+      "description": "Array of execution steps",
+      "items": {
+        "type": "object",
+        "required": ["step_id", "start_time", "end_time", "type"],
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "description": "Unique identifier for this step"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["llm_call", "tool_call", "function_call"],
+            "description": "Type of step"
+          },
+          "input": {
+            "type": "object",
+            "description": "Input to this step",
+            "properties": {
+              "prompt": {"type": "string"},
+              "messages": {"type": "array"},
+              "function_name": {"type": "string"},
+              "arguments": {"type": "object"}
+            }
+          },
+          "output": {
+            "type": "object",
+            "description": "Output from this step",
+            "properties": {
+              "content": {"type": "string"},
+              "model": {"type": "string"},
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "prompt_tokens": {"type": "integer"},
+                  "completion_tokens": {"type": "integer"},
+                  "total_tokens": {"type": "integer"}
+                }
+              },
+              "cost": {"type": "number"}
+            }
+          },
+          "error": {
+            "type": "object",
+            "description": "Error information if step failed",
+            "properties": {
+              "type": {"type": "string"},
+              "message": {"type": "string"},
+              "traceback": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+} 
