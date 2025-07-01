@@ -31,6 +31,9 @@ agentcheck diff baseline.json new.json
 
 # 5️⃣ Assert the new output still mentions the user's name
 agentcheck assert new.json --contains "John Doe"
+
+# 🆕 6️⃣ Test deterministic behavior
+python demo/demo_deterministic.py
 ```
 
 Or run the complete demo:
@@ -47,6 +50,7 @@ cd demo && ./demo_run.sh
 | **Replay** | Re-run trace against current code/model | `agentcheck replay trace.json` | `agentcheck.replay_trace()` |
 | **Diff** | Compare traces and highlight changes | `agentcheck diff trace_a.json trace_b.json` | `agentcheck.diff_traces()` |
 | **Assert** | Test trace contents (CI-friendly) | `agentcheck assert trace.json --contains "foo"` | `agentcheck.assert_trace()` |
+| **🆕 Deterministic Testing** | Test behavioral consistency of non-deterministic agents | *(Python API only)* | `@agentcheck.deterministic_replay()` |
 
 ## 📖 Usage
 
@@ -67,6 +71,77 @@ def my_agent(user_input: str) -> str:
 # Automatically traces execution and saves to my_trace.json
 result = my_agent("Hello, world!")
 ```
+
+### 🆕 Deterministic Replay Testing
+
+**The Problem**: AI agents are non-deterministic - they produce different outputs for identical inputs, making traditional testing impossible.
+
+**The Solution**: AgentCheck's deterministic replay testing learns your agent's behavioral patterns and detects when behavior changes unexpectedly.
+
+```python
+import agentcheck
+import openai
+
+@agentcheck.deterministic_replay(
+    consistency_threshold=0.8,  # 80% behavioral consistency required
+    baseline_runs=5,           # Run 5 times to establish baseline
+    baseline_name="my_agent"   # Name for this baseline
+)
+def my_agent(user_input: str) -> str:
+    with agentcheck.trace() as trace:
+        response = openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": user_input}],
+            temperature=0.7  # Non-deterministic!
+        )
+        
+        # Record the LLM call
+        trace.add_llm_call(
+            messages=[{"role": "user", "content": user_input}],
+            response={"content": response.choices[0].message.content},
+            model="gpt-4o-mini"
+        )
+        
+        return response.choices[0].message.content
+
+# Step 1: Establish behavioral baseline
+replayer = my_agent._deterministic_replayer
+test_inputs = ["What is Python?", "How do I install packages?"]
+
+replayer.establish_baseline(
+    agent_func=my_agent,
+    test_inputs=test_inputs,
+    baseline_name="my_agent"
+)
+
+# Step 2: Test current agent against baseline
+failures = replayer.test_consistency(
+    agent_func=my_agent,
+    test_inputs=test_inputs,
+    baseline_name="my_agent"
+)
+
+if failures:
+    print(f"❌ {len(failures)} tests failed - agent behavior changed!")
+    for failure in failures:
+        print(f"Input: {failure.input_data}")
+        print(f"Consistency Score: {failure.consistency_score:.3f}")
+else:
+    print("✅ All tests passed - agent behavior is consistent!")
+```
+
+**What it detects:**
+- Changes in reasoning patterns
+- Different tool usage sequences  
+- Altered response structures
+- Performance regressions
+- Error rate changes
+
+**Perfect for:**
+- Regression testing after prompt changes
+- Model version upgrades
+- Code refactoring validation
+- CI/CD pipeline integration
 
 ### Tracing with Context Manager
 
@@ -128,6 +203,11 @@ agentcheck show trace.json
                     │     replay      │   │      diff       │   │     assert      │
                     │   (re-execute)  │   │   (compare)     │   │    (test)       │
                     └─────────────────┘   └─────────────────┘   └─────────────────┘
+                                                    │
+                                          ┌─────────────────────┐
+                                          │ 🆕 deterministic    │
+                                          │ behavioral testing  │
+                                          └─────────────────────┘
 ```
 
 ## 📋 Trace Format
@@ -169,9 +249,31 @@ AgentCheck uses a standardized JSON schema for traces:
 AgentCheck is designed for CI/CD pipelines:
 
 ```bash
-# In your CI pipeline
+# Traditional trace testing
 agentcheck replay baseline_trace.json --output ci_trace.json
 agentcheck assert ci_trace.json --contains "expected behavior" --max-cost 0.10
+
+# 🆕 Deterministic behavioral testing
+python -c "
+import agentcheck
+from my_agent import my_agent
+
+replayer = my_agent._deterministic_replayer
+test_inputs = ['test1', 'test2', 'test3']
+
+failures = replayer.test_consistency(
+    agent_func=my_agent,
+    test_inputs=test_inputs,
+    baseline_name='production'
+)
+
+if failures:
+    print(f'❌ {len(failures)} behavioral consistency tests failed')
+    exit(1)
+else:
+    print('✅ All behavioral tests passed')
+    exit(0)
+"
 
 # Exit codes
 # 0 = success
