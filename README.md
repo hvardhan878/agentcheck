@@ -51,6 +51,7 @@ cd demo && ./demo_run.sh
 | **Diff** | Compare traces and highlight changes | `agentcheck diff trace_a.json trace_b.json` | `agentcheck.diff_traces()` |
 | **Assert** | Test trace contents (CI-friendly) | `agentcheck assert trace.json --contains "foo"` | `agentcheck.assert_trace()` |
 | **🆕 Deterministic Testing** | Test behavioral consistency of non-deterministic agents | *(Python API only)* | `@agentcheck.deterministic_replay()` |
+| **🆕 Analytics Dashboard** | Beautiful web GUI for trace analysis and testing insights | `python launch_dashboard.py` | *Web interface* |
 
 ## 📖 Usage
 
@@ -142,6 +143,34 @@ else:
 - Model version upgrades
 - Code refactoring validation
 - CI/CD pipeline integration
+
+### 🆕 Analytics Dashboard
+
+Get beautiful insights into your agent performance with the built-in web dashboard:
+
+```bash
+# Launch the dashboard
+python launch_dashboard.py
+
+# Or manually with streamlit
+pip install streamlit plotly pandas numpy
+streamlit run agentcheck_dashboard.py
+```
+
+**Dashboard Features:**
+- **📊 Overview**: Key metrics, traces over time, model usage distribution
+- **🔍 Trace Analysis**: Detailed step-by-step execution analysis 
+- **🧪 Deterministic Testing**: Baseline management and consistency trends
+- **💰 Cost Analysis**: Cost breakdowns by model and time periods
+
+**What you can track:**
+- Total traces and execution costs
+- Error rates and failure patterns  
+- LLM model usage and performance
+- Behavioral consistency trends
+- Cost optimization opportunities
+
+The dashboard automatically loads data from your `traces/` and `baselines/` directories and provides real-time analytics as you develop and test your agents.
 
 ### Tracing with Context Manager
 
